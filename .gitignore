@@ -5,6 +5,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### ignire manifest and jar
+###src/main/resources/META-INF
+
 ### IntelliJ IDEA ###
 .idea/
 .idea/modules.xml

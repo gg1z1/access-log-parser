@@ -29,33 +29,33 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <!-- имя JAR-файла -->
-        <finalName>alp</finalName>
-        <!-- добавление файла -->
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>info.txt</include>
-                    <!-- Можно добавить другие файлы -->
-                </includes>
-            </resource>
-        </resources>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <!--здесь ваш главный класс -->
-                            <mainClass>com.stepup.alp.MainApplication</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+<!--    <build>-->
+<!--        &lt;!&ndash; имя JAR-файла &ndash;&gt;-->
+<!--        <finalName>alp</finalName>-->
+<!--        &lt;!&ndash; добавление файла &ndash;&gt;-->
+<!--        <resources>-->
+<!--            <resource>-->
+<!--                <directory>src/main/resources</directory>-->
+<!--                <includes>-->
+<!--                    <include>info.txt</include>-->
+<!--                    &lt;!&ndash; Можно добавить другие файлы &ndash;&gt;-->
+<!--                </includes>-->
+<!--            </resource>-->
+<!--        </resources>-->
+<!--        <plugins>-->
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-jar-plugin</artifactId>-->
+<!--                <version>3.3.0</version>-->
+<!--                <configuration>-->
+<!--                    <archive>-->
+<!--                        <manifest>-->
+<!--                            &lt;!&ndash;здесь ваш главный класс &ndash;&gt;-->
+<!--                            <mainClass>com.stepup.alp.MainApplication</mainClass>-->
+<!--                        </manifest>-->
+<!--                    </archive>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+<!--        </plugins>-->
+<!--    </build>-->
 </project>
