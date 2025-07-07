@@ -31,7 +31,7 @@
 
     <build>
         <!-- имя JAR-файла -->
-        <finalName>mp</finalName>
+        <finalName>alp</finalName>
         <!-- добавление файла -->
         <resources>
             <resource>
@@ -51,7 +51,7 @@
                     <archive>
                         <manifest>
                             <!--здесь ваш главный класс -->
-                            <mainClass>com.stepup.payments.mobile.MainApplication</mainClass>
+                            <mainClass>com.stepup.alp.MainApplication</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
