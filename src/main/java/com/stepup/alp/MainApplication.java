@@ -1,55 +1,65 @@
 package com.stepup.alp;
 
+import com.stepup.exeptions.LineLengthException;
+
+import java.io.*;
 import java.util.Scanner;
-import java.io.File;
+
 
 public class MainApplication {
     public static void main(String[] args) {
 
-        //рабочий вариант
-        openFile();
-
-    }
-
-    public static void openFile(){
-        // Счетчик корректных файлов
         int correctFileCount = 0;
+        String filePath;
+        Scanner scanner = new Scanner(System.in);
 
-        // Бесконечный цикл
-        // О боже, из него невозможно выбраться
-        while (true) {
-            // Чтение пути из консоли и запись в строку
+        do {
             System.out.print("Введите путь к файлу: ");
-            String filePath;
-            filePath = new Scanner(System.in).nextLine();
-
-            // Создание объекта File по указанному пути
+            filePath = scanner.nextLine();
             File file = new File(filePath);
-            // Переменные boolean для проверки коррекности файла
-            boolean isFileExists = file.exists();
-            boolean isDirectory = file.isDirectory();
 
-            // Проверка существования файла
-            // Если файла нет, то строка с текстом ошибки
-            if (!isFileExists) {
+            if (!file.exists()) {
                 System.out.println("Ошибка: файл не существует");
                 continue;
             }
-            // Проверка директории
-            // Если это директория, то строка с текстом ошибки
-            if (isDirectory) {
+
+            if (file.isDirectory()) {
                 System.out.println("Ошибка: указан путь к директории, а не к файлу");
                 continue;
             }
 
-            // Обработка корректного файла
             correctFileCount++;
             System.out.println("Путь указан верно");
             System.out.println("Это файл номер " + correctFileCount);
-            // всё по новой босс.
-            continue;
+            break;
+
+        } while (true);
+
+        try ( FileReader fileReader = new FileReader(filePath);
+             BufferedReader reader = new BufferedReader(fileReader)) {
+
+            int totalLines = 0;
+            int maxLength = 0;
+            int minLength = Integer.MAX_VALUE;
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                totalLines++;
+                int length = line.length();
+                if (length > LineLengthException.MAX_LINE_LENGTH) throw new LineLengthException(length);
+                maxLength = Math.max(maxLength, length);
+                minLength = Math.min(minLength, length);
+            }
+
+            System.out.println("Общее количество строк: " + totalLines);
+            System.out.println("Максимальная длина строки: " + maxLength);
+            System.out.println("Минимальная длина строки: " + minLength);
+
+        } catch (LineLengthException e) {
+            System.err.println("Ошибка длины строки: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Ошибка при чтении файла: " + e.getMessage());
         }
     }
-
 }
 
