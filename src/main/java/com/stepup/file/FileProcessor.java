@@ -1,37 +1,57 @@
 package com.stepup.file;
 
-import java.io.File;
+import com.stepup.exeptions.LineLengthException;
+import com.stepup.parsers.ProcessingStrategy;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Scanner;
 
 public class FileProcessor {
 
-    public static String getValidFilePath() {
-        int correctFileCount = 0;
+    private final ProcessingStrategy strategy;
+
+    public FileProcessor(ProcessingStrategy strategy) {
+        this.strategy = strategy;
+    }
+
+    public void processFile(String filePath) {
+        try ( FileReader fileReader = new FileReader(filePath);
+              BufferedReader reader = new BufferedReader(fileReader)) {
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Проверяем длину строки
+                    if (line.length() > LineLengthException.MAX_LINE_LENGTH) throw new LineLengthException(line.length());
+                    // Обрабатываем строку через стратегию
+                    strategy.processLine(line);
+                }
+
+            } catch (LineLengthException e) {
+                System.err.println("Ошибка длины строки: " + e.getMessage());
+            } catch (IOException e) {
+                System.err.println("Ошибка при чтении файла: " + e.getMessage());
+            }
+    }
+
+    public void printStatistics() {
+        strategy.printStatistics();
+    }
+
+    public String getValidFilePath() {
         String filePath;
-        Scanner scanner = new Scanner(System.in);
-
         do {
-            System.out.print("Введите путь к файлу: ");
-            //filePath = scanner.nextLine();
-            filePath = "src\\main\\resources\\access.log";
-            File file = new File(filePath);
+            System.out.print("Введите путь к файлу лога: ");
+            filePath = new Scanner(System.in).nextLine();
 
-            if (!file.exists()) {
-                System.out.println("Ошибка: файл не существует");
-                continue;
+            if (!Files.exists(Paths.get(filePath))) {
+                System.out.println("Файл не найден! Попробуйте еще раз.");
             }
+        } while (!Files.exists(Paths.get(filePath)));
 
-            if (file.isDirectory()) {
-                System.out.println("Ошибка: указан путь к директории, а не к файлу");
-                continue;
-            }
-
-            correctFileCount++;
-            System.out.println("Путь указан верно");
-            System.out.println("Это файл номер " + correctFileCount);
-            break;
-
-        } while (true);
         return filePath;
     }
 }
