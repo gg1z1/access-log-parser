@@ -2,6 +2,7 @@ package com.stepup.alp;
 
 import com.stepup.file.FileProcessor;
 import com.stepup.parsers.BotProcessingStrategy;
+import com.stepup.parsers.BrowserProcessingSrategy;
 import com.stepup.parsers.PageProcessingStrategy;
 import com.stepup.parsers.TrafficProcessingStrategy;
 
@@ -17,9 +18,10 @@ public class MainApplication {
 //        trafficProcessor.processFile("src/main/resources/access.log");
 //        trafficProcessor.printStatistics();
         FileProcessor processor = new FileProcessor();
-        processor.addStrategy(new BotProcessingStrategy());
-        processor.addStrategy(new TrafficProcessingStrategy());
-        processor.addStrategy(new PageProcessingStrategy());
+//        processor.addStrategy(new BotProcessingStrategy());
+//        processor.addStrategy(new TrafficProcessingStrategy());
+//        processor.addStrategy(new PageProcessingStrategy());
+        processor.addStrategy(new BrowserProcessingSrategy());
 
         processor.processFile("src/main/resources/access.log"); // Парсинг происходит один раз
         processor.printStatistics();
