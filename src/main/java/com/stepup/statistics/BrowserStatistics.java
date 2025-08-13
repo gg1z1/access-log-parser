@@ -1,6 +1,9 @@
 package com.stepup.statistics;
 
+import com.stepup.exeptions.LineLengthException;
 import com.stepup.patterns.LogEntry;
+import com.stepup.useragent.base.UserAgentInfo;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,9 +23,22 @@ public class BrowserStatistics implements Statistics {
             notFoundPages.add(entry.getRequestPath());
         }
 
-        // Подсчет браузеров
-
-        String browser = entry.getUserAgent().getBrowserName();
+        String browser = "";
+        UserAgentInfo userAgentInfo = entry.getUserAgent();
+// Подсчет браузеров
+        try {
+            if (userAgentInfo.hasBrowser() && !userAgentInfo.hasBot()) {
+                browser = userAgentInfo.getBrowserInfo().getBrowserName();
+            }
+//            else if (userAgentInfo.hasBot()) {
+//                browser = "Bot: " + userAgentInfo.getBotInfo().getBotName();
+//            }
+        } catch (NullPointerException e) {
+            System.err.println("Ошибка при обработке User-Agent: " +
+                    "Не удалось определить браузер для User-Agent: " + entry.getUserAgent() +
+                    "\nСтрока в логе: " + entry.getLineNumber() +
+                    "\nПричина ошибки: " + e.getMessage());
+        }
 
         browserCount.put(browser, browserCount.getOrDefault(browser, 0) + 1);
         totalBrowsers++;

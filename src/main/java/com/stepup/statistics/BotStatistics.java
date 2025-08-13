@@ -1,15 +1,11 @@
 package com.stepup.statistics;
 
 import com.stepup.patterns.LogEntry;
-import com.stepup.useragent.UserAgent;
+import com.stepup.useragent.base.UserAgentInfo;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.HashMap;
-import java.util.Map;
 
 public class BotStatistics implements Statistics {
     private static final String GOOGLEBOT = "Googlebot";
@@ -26,11 +22,11 @@ public class BotStatistics implements Statistics {
 
     @Override
     public void addEntry(LogEntry entry) {
-        UserAgent userAgent = entry.getUserAgent();
+        UserAgentInfo userAgent = entry.getUserAgent();
         if (userAgent == null) return;
 
         totalLines.incrementAndGet();
-        String botName = userAgent.getBrowserName();
+        String botName = userAgent.getBrowserInfo().getBrowserName();
 
         if (botCounts.containsKey(botName)) {
             botCounts.get(botName).incrementAndGet();

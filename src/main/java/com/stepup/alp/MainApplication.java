@@ -22,8 +22,8 @@ public class MainApplication {
 //        processor.addStrategy(new TrafficProcessingStrategy());
 //        processor.addStrategy(new PageProcessingStrategy());
         processor.addStrategy(new BrowserProcessingSrategy());
-
-        processor.processFile("src/main/resources/access.log"); // Парсинг происходит один раз
+        processor.processFile("src/main/resources/access.log");
+        //processor.processFile("src/main/resources/access_2.log"); // Парсинг происходит один раз
         processor.printStatistics();
     }
 }

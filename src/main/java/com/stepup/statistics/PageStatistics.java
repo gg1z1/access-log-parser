@@ -23,7 +23,7 @@ public class PageStatistics implements Statistics{
         // Добавляем страницу, если код ответа 200
         if (entry.getResponseCode() == 200) uniquePages.add(entry.getRequestPath());
         // Подсчитываем ОС
-        String os = entry.getUserAgent().getOs();
+        String os = entry.getUserAgent().getBrowserInfo().getOs();
         // ... в которой подсчитывайте частоту встречаемости каждой операционной системы ...
         // ... При выполнении метода addEntry проверяйте, есть ли в этом HashMap запись с такой операционной системой.
         // Если нет, вставляйте такую запись.

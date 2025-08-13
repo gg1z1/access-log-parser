@@ -7,7 +7,7 @@ public class LogParser {
     private static final Pattern IP_PATTERN =
             Pattern.compile("^(?<ip>\\S+)");
     private static final Pattern TIMESTAMP_PATTERN =
-            Pattern.compile("\\[(?<timestamp>[^\\]]+)\\]");
+            Pattern.compile("\\[(?<timestamp>[^]]+)]");
     private static final Pattern REQUEST_PATTERN
             =  Pattern.compile("\"(?<request>[^\"]*)\"");
     private static final Pattern STATUS_CODE_PATTERN =
@@ -21,13 +21,17 @@ public class LogParser {
 
     public LogEntry parseLogLine(String logLine) {
         try {
+            String remainingLine = logLine;
+            Integer lineNumber = Integer.parseInt(remainingLine.substring(0, remainingLine.indexOf(':')).trim());
+            remainingLine = remainingLine.substring(remainingLine.indexOf(':') + 2).trim();
+
             // Парсим IP
             Matcher ipMatcher = IP_PATTERN.matcher(logLine);
             if (!ipMatcher.find()) throw new IllegalArgumentException("Не найден IP в строке: " + logLine);
             String ip = ipMatcher.group("ip");
 
             // Пропускаем два поля (user и session)
-            String remainingLine = logLine.substring(ipMatcher.end()).trim();
+            remainingLine = remainingLine.substring(ipMatcher.end()).trim();
 
             // Парсим timestamp
             Matcher timestampMatcher = TIMESTAMP_PATTERN.matcher(remainingLine);
@@ -45,7 +49,7 @@ public class LogParser {
             String[] parts = request.split(" ");
             String methodString = parts[0];    // GET
             String requestPath = parts[1];     // путь
-            String protocol = parts[2];   ;  // HTTP/1.0
+            String protocol = parts[2];    // HTTP/1.0
 
             // Преобразуем метод в enum
             HttpMethod method = HttpMethod.valueOf(methodString.toUpperCase());
@@ -84,7 +88,8 @@ public class LogParser {
 
             return new LogEntry(String.format(
                     """
-                            %s %s %s %s %d %d %s \"%s\"""",
+                            %d %s %s %s %s %d %d %s "%s\"""",
+                    lineNumber,
                     ip,
                     timestamp,
                     method,

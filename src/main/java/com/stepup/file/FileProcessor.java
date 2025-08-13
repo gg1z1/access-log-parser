@@ -41,10 +41,12 @@ public class FileProcessor {
              BufferedReader reader = new BufferedReader(fileReader)) {
 
             String line;
+            int lineNumber = 0;
             LogParser parser = new LogParser();
             while ((line = reader.readLine()) != null) {
+                lineNumber++;
                 try {
-                    LogEntry logParseResult = parser.parseLogLine(line);
+                    LogEntry logParseResult = parser.parseLogLine(lineNumber + ": " + line);
                     entries.add(logParseResult);
                 } catch (Exception e) {
                     System.err.println("Ошибка парсинга строки: " + line);
