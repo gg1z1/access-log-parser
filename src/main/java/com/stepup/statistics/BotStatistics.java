@@ -2,62 +2,69 @@ package com.stepup.statistics;
 
 import com.stepup.patterns.LogEntry;
 import com.stepup.useragent.base.UserAgentInfo;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BotStatistics implements Statistics {
-    private static final String GOOGLEBOT = "Googlebot";
-    private static final String YANDEXBOT = "YandexBot";
-
     private final Map<String, AtomicInteger> botCounts = new HashMap<>();
-    private final AtomicInteger totalLines = new AtomicInteger(0);
-
-    public BotStatistics() {
-        botCounts.put(GOOGLEBOT, new AtomicInteger(0));
-        botCounts.put(YANDEXBOT, new AtomicInteger(0));
-        botCounts.put("Unknown", new AtomicInteger(0));
-    }
+    private final AtomicInteger totalRequests = new AtomicInteger(0);
+    private final AtomicInteger botRequests = new AtomicInteger(0);
+    private final AtomicInteger nonBotRequests = new AtomicInteger(0);
 
     @Override
     public void addEntry(LogEntry entry) {
         UserAgentInfo userAgent = entry.getUserAgent();
         if (userAgent == null) return;
 
-        totalLines.incrementAndGet();
-        String botName = userAgent.getBrowserInfo().getBrowserName();
+        totalRequests.incrementAndGet();
 
-        if (botCounts.containsKey(botName)) {
-            botCounts.get(botName).incrementAndGet();
+        if(userAgent.hasBot()) {
+            botRequests.incrementAndGet();
+            String botName = userAgent.getBotInfo().getBotName();
+
+            // Используем getOrDefault для корректной работы с AtomicInteger
+            botCounts.compute(botName, (name, count) -> {
+                if (count == null) {
+                    return new AtomicInteger(1);
+                } else {
+                    count.incrementAndGet();
+                    return count;
+                }
+            });
         } else {
-            botCounts.get("Unknown").incrementAndGet();
+            nonBotRequests.incrementAndGet();
         }
     }
 
     @Override
     public void printStatistics() {
-        if (totalLines.get() == 0) {
+        if (totalRequests.get() == 0) {
             System.out.println("Файл пуст");
             return;
         }
 
-        System.out.println("Статистика запросов ботов:");
-        System.out.println("-------------------------");
+        System.out.println("Статистика ботов и запросов:");
+        System.out.println("----------------------------");
 
+        System.out.println("Общее количество запросов: " + totalRequests.get());
+        System.out.println("Запросы от ботов: " + botRequests.get() +
+                " (" + getPercentage(botRequests.get(), totalRequests.get()) + "%)");
+        System.out.println("Запросы от пользователей: " + nonBotRequests.get() +
+                " (" + getPercentage(nonBotRequests.get(), totalRequests.get()) + "%)");
+
+        System.out.println("\nРаспределение по ботам:");
         for (Map.Entry<String, AtomicInteger> entry : botCounts.entrySet()) {
             String botName = entry.getKey();
             int count = entry.getValue().get();
-            if (count > 0) {
-                double percentage = (double) count / totalLines.get() * 100;
-                System.out.printf("%-15s: %d (%6.2f%%)%n", botName, count, percentage);
-            }
+            double botPercentage = getPercentage(count, botRequests.get());
+            System.out.printf("%-15s: %d (%6.2f%%)%n", botName, count, botPercentage);
         }
-
-        System.out.println("-------------------------");
-        System.out.println("Общее количество строк: " + totalLines.get());
     }
 
+    private double getPercentage(int part, int total) {
+        return (double) part / total * 100;
+    }
 
     public Map<String, Integer> getBotCounts() {
         Map<String, Integer> result = new HashMap<>();
@@ -67,7 +74,15 @@ public class BotStatistics implements Statistics {
         return result;
     }
 
-    public long getTotalRequests() {
-        return totalLines.get();
+    public int getTotalRequests() {
+        return totalRequests.get();
+    }
+
+    public int getBotRequests() {
+        return botRequests.get();
+    }
+
+    public int getNonBotRequests() {
+        return nonBotRequests.get();
     }
 }

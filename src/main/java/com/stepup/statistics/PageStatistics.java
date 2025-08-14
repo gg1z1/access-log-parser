@@ -23,17 +23,22 @@ public class PageStatistics implements Statistics{
         // Добавляем страницу, если код ответа 200
         if (entry.getResponseCode() == 200) uniquePages.add(entry.getRequestPath());
         // Подсчитываем ОС
-        String os = entry.getUserAgent().getBrowserInfo().getOs();
-        // ... в которой подсчитывайте частоту встречаемости каждой операционной системы ...
-        // ... При выполнении метода addEntry проверяйте, есть ли в этом HashMap запись с такой операционной системой.
-        // Если нет, вставляйте такую запись.
-        // Если есть, добавляйте к соответствующему значению единицу.
-        // В итоге получится HashMap, ключи которого будут названиями операционных систем
-        // , а значения — их количествами в лог-файле.
-        // TUMANOV AS: getOrDefault классный метод, который возвращает 0 в случае если OS не найдена.
-        // TUMANOV AS: Так что можно не проверять если ОС в этом коллекторе, вернёт 0 если нет.
-        osCount.put(os, osCount.getOrDefault(os, 0) + 1);
-        totalRequests++;
+        if(entry.getUserAgent().hasBrowser()){
+            String os = entry.getUserAgent().getBrowserInfo().getOs();
+
+            // Группировка ОС
+            String groupedOs = groupOs(os);
+            // ... в которой подсчитывайте частоту встречаемости каждой операционной системы ...
+            // ... При выполнении метода addEntry проверяйте, есть ли в этом HashMap запись с такой операционной системой.
+            // Если нет, вставляйте такую запись.
+            // Если есть, добавляйте к соответствующему значению единицу.
+            // В итоге получится HashMap, ключи которого будут названиями операционных систем
+            // , а значения — их количествами в лог-файле.
+            // TUMANOV AS: getOrDefault классный метод, который возвращает 0 в случае если OS не найдена.
+            // TUMANOV AS: Так что можно не проверять если ОС в этом коллекторе, вернёт 0 если нет.
+            osCount.put(groupedOs, osCount.getOrDefault(groupedOs, 0) + 1);
+            totalRequests++;
+        }
     }
 
     @Override
@@ -41,16 +46,30 @@ public class PageStatistics implements Statistics{
         System.out.println("Статистика страниц и ОС:");
         System.out.println("------------------------");
 
-        // Вывод уникальных страниц
         System.out.println("\nУникальные страницы сайта:");
         System.out.println("Всего уникальных страниц: " + uniquePages.size());
 
-        // Вывод статистики ОС
         System.out.println("\nСтатистика операционных систем:");
         Map<String, Double> osStats = getOsStatistics();
         for (Map.Entry<String, Double> entry : osStats.entrySet()) {
             System.out.printf("%-15s: %6.2f%%%n",
                     entry.getKey(), entry.getValue() * 100);
+        }
+    }
+
+    private String groupOs(String os) {
+        if (os.contains("Windows")) {
+            return "Windows";
+        } else if (os.contains("Macintosh") || os.contains("Mac OS")) {
+            return "macOS";
+        } else if (os.contains("Linux") || os.contains("Android")) {
+            return "Linux/Android";
+        } else if (os.contains("X11") || os.contains("CrOS")) {
+            return "Unix-like";
+        } else if (os.contains("Unknown") || os.isEmpty()) {
+            return "Unknown";
+        } else {
+            return os;
         }
     }
 
@@ -78,4 +97,5 @@ public class PageStatistics implements Statistics{
             System.out.println(page);
         }
     }
+
 }

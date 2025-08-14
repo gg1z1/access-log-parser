@@ -19,9 +19,7 @@ public class BrowserStatistics implements Statistics {
     @Override
     public void addEntry(LogEntry entry) {
         // Обработка 404 страниц
-        if (entry.getResponseCode() == 404) {
-            notFoundPages.add(entry.getRequestPath());
-        }
+        if (entry.getResponseCode() == 404) notFoundPages.add(entry.getRequestPath());
 
         String browser = "";
         UserAgentInfo userAgentInfo = entry.getUserAgent();

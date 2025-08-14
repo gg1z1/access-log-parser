@@ -1,8 +1,8 @@
 package com.stepup.statistics;
 
 import com.stepup.patterns.LogEntry;
-
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Map;
@@ -16,25 +16,27 @@ public class TrafficStatistics implements Statistics {
     private String endTime;
     private final Map<Integer, AtomicInteger> statusCodes = new HashMap<>();
 
+    // Форматировщик даты для парсинга
+    private static final DateTimeFormatter formatter =
+            DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
+
     public TrafficStatistics() {
-        // Инициализируем счетчики для основных кодов ответа
+        // Инициализация счетчиков кодов ответа
         statusCodes.put(200, new AtomicInteger(0));
         statusCodes.put(301, new AtomicInteger(0));
         statusCodes.put(302, new AtomicInteger(0));
         statusCodes.put(404, new AtomicInteger(0));
         statusCodes.put(500, new AtomicInteger(0));
-        statusCodes.put(999, new AtomicInteger(0)); // Для остальных кодов
+        statusCodes.put(999, new AtomicInteger(0));
     }
 
     @Override
     public void addEntry(LogEntry entry) {
-        // Добавляем размер ответа к общему объему
+        // Добавление размера ответа
         totalBytes.addAndGet(entry.getContentLength());
-
-        // Увеличиваем счетчик запросов
         totalRequests.incrementAndGet();
 
-        // Обновляем временные метки
+        // Обновление временных меток
         String timestamp = entry.getTimestamp();
         if (startTime == null || timestamp.compareTo(startTime) < 0) {
             startTime = timestamp;
@@ -43,7 +45,7 @@ public class TrafficStatistics implements Statistics {
             endTime = timestamp;
         }
 
-        // Подсчитываем коды ответа
+        // Подсчет кодов ответа
         int code = entry.getResponseCode();
         if (statusCodes.containsKey(code)) {
             statusCodes.get(code).incrementAndGet();
@@ -62,6 +64,10 @@ public class TrafficStatistics implements Statistics {
         System.out.println("Статистика трафика:");
         System.out.println("-------------------");
 
+        // Добавляем новую строку с трафиком
+        double trafficRate = getTrafficRate();
+        System.out.println("Средний трафик в час: " + formatBytes((long)trafficRate));
+
         System.out.println("Общее количество запросов: " + totalRequests.get());
         System.out.println("Общий объем трафика: " + formatBytes(totalBytes.get()));
         System.out.println("Период сбора данных: " + startTime + " - " + endTime);
@@ -78,6 +84,28 @@ public class TrafficStatistics implements Statistics {
         }
     }
 
+    // Метод расчета трафика
+    private double getTrafficRate() {
+        if (startTime == null || endTime == null) {
+            return 0.0;
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
+        try {
+            LocalDateTime start = LocalDateTime.parse(startTime, formatter);
+            LocalDateTime end = LocalDateTime.parse(endTime, formatter);
+            long durationHours = java.time.Duration.between(start, end).toHours();
+
+            if (durationHours <= 0) {
+                return 0.0;
+            }
+
+            return (double) totalBytes.get() / durationHours;
+        } catch (Exception e) {
+            return 0.0;
+        }
+    }
+
     private String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return String.format("%.2f KB", (double) bytes / 1024);
@@ -85,36 +113,33 @@ public class TrafficStatistics implements Statistics {
         return String.format("%.2f GB", (double) bytes / (1024 * 1024 * 1024));
     }
 
-
-    public long getTotalRequests() {
-        return totalRequests.get();
-    }
-
-    // Дополнительные геттеры
-    public long getTotalBytes() {
-        return totalBytes.get();
-    }
-
-    public String getStartTime() {
-        return startTime;
-    }
-
-    public String getEndTime() {
-        return endTime;
-    }
-
-    public Map<Integer, Integer> getStatusCodes() {
-        Map<Integer, Integer> result = new HashMap<>();
-        for (Map.Entry<Integer, AtomicInteger> entry : statusCodes.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().get());
+    private double getAverageTrafficRate() {
+        if (startTime == null || endTime == null) {
+            return 0;
         }
-        return result;
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss Z");
+            LocalDateTime start = LocalDateTime.parse(startTime, formatter);
+            LocalDateTime end = LocalDateTime.parse(endTime, formatter);
+
+            long durationHours = java.time.Duration.between(start, end).toHours();
+            if (durationHours == 0) {
+                return 0;
+            }
+
+            return (double) totalBytes.get() / durationHours;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
-    public int getStatusCodeCount(int code) {
-        return statusCodes.getOrDefault(code, new AtomicInteger(0)).get();
+    // Геттер для среднего трафика
+    public long getAverageTrafficRateBytes() {
+        return (long)getAverageTrafficRate();
     }
 
+    // Дополнительные методы для статистики
     public double getAverageResponseSize() {
         if (totalRequests.get() == 0) return 0;
         return (double) totalBytes.get() / totalRequests.get();

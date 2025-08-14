@@ -9,10 +9,8 @@ public abstract class BaseProcessingStrategy implements ProcessingStrategy {
     protected abstract void processEntry(LogEntry entry);
 
     @Override
-    public void processEntries(List<LogEntry> entries) {
-        for (LogEntry entry : entries) {
-            processEntry(entry);
-        }
+    public void processSingleEntry(LogEntry entry) {  // новое
+        processEntry(entry);
     }
 
     @Override
