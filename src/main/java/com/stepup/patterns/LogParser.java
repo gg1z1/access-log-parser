@@ -1,9 +1,10 @@
 package com.stepup.patterns;
 
+import java.io.UnsupportedEncodingException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class LogParser {
+    public class LogParser {
     private static final Pattern IP_PATTERN =
             Pattern.compile("^(?<ip>\\S+)");
     private static final Pattern TIMESTAMP_PATTERN =
@@ -19,14 +20,16 @@ public class LogParser {
     private static final Pattern USER_AGENT_PATTERN =
             Pattern.compile("\"(?<userAgent>[^\"]*)\"$");
 
+
     public LogEntry parseLogLine(String logLine) {
         try {
             String remainingLine = logLine;
             Integer lineNumber = Integer.parseInt(remainingLine.substring(0, remainingLine.indexOf(':')).trim());
-            remainingLine = remainingLine.substring(remainingLine.indexOf(':') + 2).trim();
+            String strLineNumber = lineNumber + ":";
+            remainingLine = remainingLine.substring(strLineNumber.length()).trim();
 
             // Парсим IP
-            Matcher ipMatcher = IP_PATTERN.matcher(logLine);
+            Matcher ipMatcher = IP_PATTERN.matcher(remainingLine);
             if (!ipMatcher.find()) throw new IllegalArgumentException("Не найден IP в строке: " + logLine);
             String ip = ipMatcher.group("ip");
 
@@ -76,7 +79,9 @@ public class LogParser {
             // Парсим referer
             Matcher refererMatcher = REFERER_PATTERN.matcher(remainingLine);
             if (!refererMatcher.find()) throw new IllegalArgumentException("Не найден referer в строке: " + logLine);
-            String referer = refererMatcher.group("referer");
+            String referer = processReferer (refererMatcher.group("referer"));
+
+
 
             // Обновляем оставшуюся строку
             remainingLine = remainingLine.substring(refererMatcher.end()).trim();
@@ -109,4 +114,16 @@ public class LogParser {
             throw new IllegalArgumentException("Ошибка парсинга строки лога: " + logLine, e);
         }
     }
+    private String processReferer(String rawReferer) {
+        if (rawReferer == null || rawReferer.isEmpty()) return null;
+        if (!rawReferer.contains("%")) return rawReferer;
+        try {
+            // Декодируем URL - это автоматически заменит все %XX на соответствующие символы
+            return java.net.URLDecoder.decode(rawReferer, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            // Если что-то пошло не так, возвращаем оригинальный referer
+            return rawReferer;
+        }
+    }
 }
+

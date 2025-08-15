@@ -5,102 +5,168 @@ import com.stepup.useragent.base.UserAgentInfo;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 public class HourlyTrafficStatistics implements Statistics {
-
-    // Для подсчета посещений реальными пользователями
-    private final AtomicInteger humanVisits = new AtomicInteger(0);
-    private final AtomicInteger errorRequests = new AtomicInteger(0);
-    private final Set<String> uniqueIps = new HashSet<>();
+    private final ConcurrentHashMap<Integer, AtomicInteger> visitsByHour = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, AtomicInteger> errorsByHour = new ConcurrentHashMap<>();
+    private final ConcurrentSkipListSet<String> uniqueUsers = new ConcurrentSkipListSet<>();
 
     private String startTime;
     private String endTime;
 
     @Override
     public void addEntry(LogEntry entry) {
-        // Обновляем временные метки
         String timestamp = entry.getTimestamp();
-        if (startTime == null || timestamp.compareTo(startTime) < 0) {
+        String ip = entry.getIp();
+
+        // Обновляем временные метки
+        if (startTime == null || timestamp.compareTo(startTime) < 0)
             startTime = timestamp;
-        }
-        if (endTime == null || timestamp.compareTo(endTime) > 0) {
+        if (endTime == null || timestamp.compareTo(endTime) > 0)
             endTime = timestamp;
-        }
 
+        int hour = extractHourFromTimestamp(timestamp);
 
-        // Проверяем на бота
         UserAgentInfo userAgent = entry.getUserAgent();
         if (userAgent != null && !userAgent.hasBot()) {
-            humanVisits.incrementAndGet();
-            uniqueIps.add(entry.getIp());
+            visitsByHour.computeIfAbsent(hour, k -> new AtomicInteger()).incrementAndGet();
+            uniqueUsers.add(ip);
 
-            // Подсчет ошибок
             int code = entry.getResponseCode();
             if (code >= 400 && code < 600) {
-                errorRequests.incrementAndGet();
+                errorsByHour.computeIfAbsent(hour, k -> new AtomicInteger()).incrementAndGet();
             }
         }
     }
 
-    // Метод для расчета среднего количества посещений за час
+    private int extractHourFromTimestamp(String timestamp) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+                "dd/MMM/yyyy:HH:mm:ss [Z]"
+        ).withLocale(Locale.ENGLISH);
+        LocalDateTime dateTime = LocalDateTime.parse(timestamp, formatter);
+        return dateTime.getHour();
+    }
+
     public double getAverageVisitsPerHour() {
-        if (startTime == null || endTime == null) {
-            return 0;
-        }
-
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                "dd/MMM/yyyy:HH:mm:ss [Z]"
-        ).withLocale(Locale.ENGLISH);
-        LocalDateTime start = LocalDateTime.parse(startTime, formatter);
-        LocalDateTime end = LocalDateTime.parse(endTime, formatter);
-
-        long hours = java.time.Duration.between(start, end).toHours();
-        if (hours == 0) {
-            return 0;
-        }
-
-        return (double) humanVisits.get() / hours;
+        return calculateAverage(
+                getTotalValue(visitsByHour),
+                getTotalHours()
+        );
     }
 
-    // Метод для расчета среднего количества ошибок в час
+    // Метод для подсчета среднего количества ошибок в час
     public double getAverageErrorsPerHour() {
+        return calculateAverage(
+                getTotalValue(errorsByHour),
+                getTotalHours()
+        );
+    }
+
+    // Метод для подсчета среднего количества визитов на пользователя
+    public double getAverageVisitsPerUser() {
+        return calculateAverage(
+                getTotalValue(visitsByHour),
+                getUniqueUsersCount()
+        );
+    }
+
+    private long getUniqueUsersCount() {
+        return uniqueUsers.size();
+    }
+
+    private double calculateAverage(long totalValue, long divisor) {
+        return divisor > 0 ? (double) totalValue / divisor : 0;
+    }
+
+    private long getTotalValue(ConcurrentHashMap<Integer, AtomicInteger> map) {
+        return map.values().stream()
+                .mapToInt(AtomicInteger::get)
+                .sum();
+    }
+
+    private long getTotalHours() {
         if (startTime == null || endTime == null) {
             return 0;
         }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                "dd/MMM/yyyy:HH:mm:ss [Z]"
-        ).withLocale(Locale.ENGLISH);
-        LocalDateTime start = LocalDateTime.parse(startTime, formatter);
-        LocalDateTime end = LocalDateTime.parse(endTime, formatter);
+        LocalDateTime start = parseDateTime(startTime);
+        LocalDateTime end = parseDateTime(endTime);
 
-        long hours = java.time.Duration.between(start, end).toHours();
-        if (hours == 0) {
-            return 0;
-        }
-
-        return (double) errorRequests.get() / hours;
+        return ChronoUnit.HOURS.between(start, end) + 1;
     }
 
-    // Метод для расчета средней посещаемости одним пользователем
-    public double getAverageUserVisits() {
-        if (uniqueIps.isEmpty()) {
-            return 0;
-        }
-        return (double) humanVisits.get() / uniqueIps.size();
+    private LocalDateTime parseDateTime(String timestamp) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+                "dd/MMM/yyyy:HH:mm:ss Z"
+        ).withLocale(Locale.ENGLISH);
+        return LocalDateTime.parse(timestamp, formatter);
     }
 
     @Override
     public void printStatistics() {
-        System.out.println("Статистика по часам:");
-        System.out.println("-------------------");
+        System.out.println("Статистика трафика:");
+        System.out.println("------------------");
+
+        if (startTime == null || endTime == null) {
+            System.out.println("Данные отсутствуют");
+            return;
+        }
+
         System.out.println("Период сбора данных: " + startTime + " - " + endTime);
-        System.out.println("Среднее количество посещений в час: " + getAverageVisitsPerHour());
-        System.out.println("Среднее количество ошибок в час: " + getAverageErrorsPerHour());
-        System.out.println("Средняя посещаемость на пользователя: " + getAverageUserVisits());
+        System.out.println();
+
+        // Общая информация
+        System.out.println("Общая статистика:");
+        System.out.println("----------------");
+        System.out.printf("Среднее количество посещений в час: %.2f%n", getAverageVisitsPerHour());
+        System.out.printf("Среднее количество ошибок в час: %.2f%n", getAverageErrorsPerHour());
+        System.out.printf("Средняя посещаемость на пользователя: %.2f%n", getAverageVisitsPerUser());
+        System.out.println();
+
+        // Детальная почасовая статистика
+        System.out.println("Почасовая статистика посещений:");
+        System.out.println("-----------------------------");
+        printHourlyStatistics(visitsByHour, "Посещений");
+
+        System.out.println();
+
+        System.out.println("Почасовая статистика ошибок:");
+        System.out.println("--------------------------");
+        printHourlyStatistics(errorsByHour, "Ошибок");
+
+        System.out.println();
+        System.out.println();
+    }
+
+    private void printHourlyStatistics(ConcurrentHashMap<Integer, AtomicInteger> map, String type) {
+        // Получаем все часы в периоде
+        LocalDateTime start = parseDateTime(startTime);
+        LocalDateTime end = parseDateTime(endTime);
+
+        LocalDateTime current = start.withMinute(0).withSecond(0);
+        LocalDateTime limit = end.withMinute(0).withSecond(0).plusHours(1);
+
+        while (current.isBefore(limit)) {
+            int hour = current.getHour();
+            int count = map.getOrDefault(hour, new AtomicInteger(0)).get();
+            System.out.printf("Час %02d:00 - %d %s%n", hour, count, type);
+            current = current.plusHours(1);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "HourlyTrafficStatistics{" +
+                "visitsByHour=" + visitsByHour +
+                ", errorsByHour=" + errorsByHour +
+                ", uniqueUsers=" + uniqueUsers.size() +
+                ", startTime='" + startTime + '\'' +
+                ", endTime='" + endTime + '\'' +
+                '}';
     }
 }
